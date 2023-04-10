@@ -3,9 +3,10 @@ import image from './Assets/dummy.jpeg'
 import logo from './Assets/logo.png'
 import io from 'socket.io-client'
 import { useEffect, useState } from 'react';
-const socket = io.connect("http://localhost:5000");
 
 function App() {
+  const socket = io.connect("http://localhost:5000");
+  const [newMessage, setNewMessage] = useState([])
   const [theme, setTheme] = useState('light');
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -15,15 +16,29 @@ function App() {
     document.querySelector('html').setAttribute('data-theme', theme);
   }, [theme]);
 
-  const message = () => {
-    console.log('inside');
+  const message = async () => {
+    const room = 'abcd'
+    const message = document.getElementById('msgBox').value
+    const data = {
+      message, room
+    }
+    // console.log('inside',message);
+    document.getElementById('msgBox').value = ''
+    socket.emit('join_room', room);
+    await socket.emit('send_message', data)
   }
+  useEffect(() => {
+    socket.on('receive_message', (data) => {
+      // console.log('front-end useEffect',data);
+      setNewMessage(list => [...list, data])
+    })
+  }, [socket])
   return (
     <section className='h-screen flex'>
       {/* Left bar */}
       <div className='w-3/12 h-full bg-purple-600'>
         <div className='flex justify-between mt-2 ml-2'>
-          <img src={logo} alt="" className='w-12'/>
+          <img src={logo} alt="" className='w-12' />
           <label className="swap swap-rotate">
 
             {/* <!-- this hidden checkbox controls the state --> */}
@@ -40,28 +55,29 @@ function App() {
 
       </div>
       {/* right field */}
-      <div className='bg-gray-50 w-10/12 h-full flex flex-col justify-between'>
-        <div>
-          <div className='bg-gray-200 flex pl-8 py-2'>
+      <div className='bg-gray-50 w-10/12 h-screen flex flex-col justify-between'>
+      <div className='bg-gray-200 flex pl-8 py-2'>
             <div className="avatar">
               <div className="w-6 rounded-full">
-                <img src={image} />
+                <img src={image} alt='test'/>
               </div>
             </div>
             <h5 className='bg-transparent pl-2 font-semibold'>Rakib Hossain</h5>
           </div>
-          <div className='overflow-y-auto'>
-            <div className="chat chat-start mt-5">
-              <div className="chat-bubble chat-bubble-primary">Sending message through client side</div>
-            </div>
-            <div className="chat chat-end">
+
+          <div className='h-full overflow-y-scroll'>
+            {newMessage && newMessage.map(message =>
+              <div className="chat chat-start mt-5">
+                <div className="chat-bubble chat-bubble-primary">{message.message}</div>
+              </div>)
+            }
+            {/* <div className="chat chat-end">
               <div className="chat-bubble chat-bubble-info">So what?</div>
-            </div>
-          </div>
+            </div> */}
         </div>
         <div className='w-full flex items-center border-2 border-gray-400 rounded-t bg-white'>
           {/* <input className='w-full h-full text-black appearance-none border-0 outline-0 px-5' type='textarea' name=""/> */}
-          <textarea className='w-full h-full text-black appearance-none border-0 outline-0 px-5 resize-none overflow-hidden' rows="" cols=""></textarea>
+          <textarea id='msgBox' className='w-full h-full text-black appearance-none border-0 outline-0 px-5 resize-none overflow-hidden' rows="" cols=""></textarea>
           <Icon className='btn bg-transparent border-0 p-0 hover:bg-transparent text-4xl text-purple-600' icon="carbon:send-filled" onClick={message} />
         </div>
       </div>
